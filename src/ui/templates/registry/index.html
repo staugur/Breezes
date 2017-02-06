@@ -1,0 +1,98 @@
+{% extends "base/base.html" %}
+{% block title %}
+Registry | Breezes - Docker Registry 管理平台
+{% endblock %}
+{% block container %}
+{% set registries = g.registry.getRegistries() %}
+{% set ActiveRegistry = g.registry.getActive %}
+{% if not registries %}
+<div class="alert alert-warning" role="alert"><i class="icon-info-sign"></i> 当前系统无仓库!!!</div>
+{% endif %}
+{% if not ActiveRegistry %}
+<div class="alert alert-danger" role="alert"><i class="icon-remove-sign"></i> 当前系统无活跃仓库!!!</div>
+{% endif %}
+<p>
+    <a href="{{ url_for('ui.index') }}"><button type="button" class="btn btn-default"><i class="icon-repeat"></i> Reload</button></a>
+    <a href="javascript:RegistryAdd()"><button type="button" class="btn btn-success">添加仓库</button></a>
+</p>
+<table class="table table-bordered table-hover table-condensed table-responsive">
+    <thead>
+        <tr class="active">
+            <th style="vertical-align: middle; text-align: center;">isActive</th>
+            <th style="vertical-align: middle; text-align: center;">Name</th>
+            <th style="vertical-align: middle; text-align: center;">Address</th>
+            <th style="vertical-align: middle; text-align: center;">Version</th>
+            <th style="vertical-align: middle; text-align: center;">State</th>
+            <th style="vertical-align: middle; text-align: center;">Operations</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for registry in registries %}
+        <tr>
+        {%- if registry.name == ActiveRegistry.name %}
+            <td style="vertical-align: middle; text-align: center;"><attr title="当前为活跃仓库" class="icon-ok icon-large text-success"></attr></td>
+        {% else %}
+            <td style="vertical-align: middle; text-align: center;"><a href='javascript:setActive("{{ registry.name }}")'><attr title='升级为活跃仓库' class='icon-arrow-up icon-large text-primary'></attr></a></td>
+        {% endif -%}
+            <td style='vertical-align: middle; text-align: center;'>{{ registry.name }}</td>
+            <td style='vertical-align: middle; text-align: center;'>{{ registry.address }}</td>
+            <td style='vertical-align: middle; text-align: center;'>{{ registry.version }}</td>
+            {% if registry.state == "Healthy" %}
+            <td style='vertical-align: middle; text-align: center;' class="text-success">{{ registry.state }}</td>
+            {% else %}
+            <td style='vertical-align: middle; text-align: center;' class="text-danger">{{ registry.state }}</td>
+            {% endif %}
+            <td style='vertical-align: middle; text-align: center;'>
+                &nbsp;&nbsp;<a class="btn btn-xs btn-info" href="{{ url_for('ui.index', UpdateManager=true) }}"><i class="icon-refresh icon-large icon-spin"></i>&nbsp;同步</a>
+                <br/>
+                &nbsp;&nbsp;<a class="btn btn-xs btn-danger" href="javascript:SwarmDelete('{{ swarm.name }}')"><i class="icon-trash icon-large"></i>&nbsp;删除</a>
+                <br/>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+{% block script %}
+<script type="text/javascript">
+// 更新导航
+var NavId=null;
+var As=document.getElementById('tab').getElementsByTagName('li');
+NavId = As[0];
+console.log(NavId)
+NavId.className='active';
+
+// 设置活跃仓库
+function setActive(name) {
+    $.ajax({
+        url: "/",
+        method: 'PUT',
+        datatype: 'json',
+        success: function(res) {
+            console.log(res);
+            if (res.success==true) {
+                layer.msg("设置活跃仓库成功！", {icon: 1});
+                window.location.reload();
+            } else {
+                layer.msg("设置活跃仓库失败！", {icon: 2, time: 10*1000});
+            }
+        },
+        error: function(error){
+            console.log(error);
+        }
+    });
+}
+
+// iframe层添加仓库
+function RegistryAdd() {
+    layer.open({
+        type: 2,
+        title: '添加私有仓',
+        shadeClose: true,
+        shade: 0.8,
+        area: ['800px', '90%'],
+        content: '/'
+    });
+}
+</script>
+{% endblock %}

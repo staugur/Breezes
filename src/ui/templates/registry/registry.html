@@ -1,0 +1,106 @@
+{% extends "base/base.html" %}
+
+{% block title %}
+Registry | SwarmOps - Docker管理平台
+{% endblock %}
+
+{% block container %}
+{% set registies = g.registry._search_all_repository(request.args.get("q", "")) %}
+<!--
+<p>
+    <a href="{{ url_for('ui.misc', misc='AddRegistry') }}"><button type="button" class="btn btn-success">添加私有仓</button></a>
+    <a href="{{ url_for('ui.misc', misc='DelRegistry') }}"><button type="button" class="btn btn-danger">删除私有仓</button></a>
+</p>
+-->
+<div>
+    <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓地址:&nbsp;<kbd>{{ g.registry.url }}</kbd></p>
+    <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓版本:&nbsp;<kbd>v{{ g.registry.version }}</kbd></p>
+    <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓状态:
+    {% if g.registry.status %}
+        <b class="text-success">OK</b>
+    {% else %}
+        <b class="text-danger">Fail</b>
+    {% endif %}
+    <p><scan class="glyphicon glyphicon-info-sign"></scan>当前镜像数量:&nbsp;<span class="badge">{{ registies|length }}</scan></p>
+    </p>
+    <div>
+        <ol class="breadcrumb">
+            <li class="active">Registry</li>
+            <li>ImageName</li>
+            <li>ImageInfo</li>
+        </ol>
+    </div>
+
+<form class="form-search form-horizontal" action="?q=" method="" id="SearchForm">
+  <div class="input-group search-input-group">
+    <button type="button" onclick=SearchRepository() class="btn btn-primary"><i class="icon-search"></i></button>
+    <input type="text" name="q" placeholder="搜索私有仓镜像" value="{{ request.args.get('q','') }}">
+  </div>
+</form>
+</div>
+{% if g.registry.status %}
+<table class="table table-bordered table-hover table-condensed table-responsive">
+    <thead>
+        <tr class="active">
+            <th style="vertical-align: middle; text-align: center;">Repository</th>
+            <th style="vertical-align: middle; text-align: center;">Description</th>
+            <th style="vertical-align: middle; text-align: center;">Operations</th>
+        </tr>
+    </thead>
+    <tbody id="list_repository">
+    {% for registry in registies %}
+        <tr>
+            <td style='vertical-align: middle; text-align: center; width: 60%'><a href="{{ url_for('ui.registryImageName', namespace=registry.name.split('/')[0], repository_name=registry.name.split('/')[-1]) }}">{{ "{}/{}".format(g.registry.url.split("://")[-1].strip("/"), registry.name) }}</a></td>
+            <td style='vertical-align: middle; text-align: center;'>{{ registry.description }}</td>
+            <td style='vertical-align: middle; text-align: center;'>
+                <a href="javascript:DeleteRepository('{{ registry.name }}')" title="确认删除镜像: {{ registry.name }}&nbsp;?"><scan class="text-danger glyphicon glyphicon-trash"></scan></a>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript">
+// 更新导航
+var NavId=null;
+var As=document.getElementById('tab').getElementsByTagName('li');
+NavId = As[4];
+console.log(NavId)
+NavId.className='active';
+
+// 搜索镜像
+function SearchRepository() {
+    var search = $('#SearchForm').serialize();
+    console.log(search);
+    if (search) {
+        window.location.href="?"+search;
+    }
+}
+
+// 删除镜像
+function DeleteRepository(repository_name) {
+  if(window.confirm("你确定要删除镜像" + repository_name + "?")) {
+    $.ajax({
+        url: "{{ url_for('apis.core.registry') }}?repository_name=" + repository_name,
+        method: 'DELETE',
+        datatype: 'json',
+        success: function(res) {
+            console.log(res);
+            if (res.success==true) {
+                layer.msg("镜像" + repository_name + "删除成功！", {icon: 1});
+                window.location.reload();
+            } else {
+                layer.msg("镜像" + repository_name + "删除失败！", {icon: 2, time: 15*1000});
+            }
+        },
+        error: function(error){
+            console.log(error);
+        }
+    });
+  }
+}
+</script>
+{% endblock %}
