@@ -1,9 +1,30 @@
 # -*- coding: utf8 -*-
 
-import os.path, json
+import os.path, json, requests
 from utils.public import logger
 
-class MultiRegistryManager:
+
+class BASE_REGISTRY_API:
+
+
+    def __init__(self, timeout=2, verify=False):
+        self.timeout  = timeout
+        self.verify   = verify
+
+    def _checkStatus(self, url, version=1):
+        """ 返回私有仓状态 """
+
+        try:
+            url = url.strip("/") + "/v1/_ping" if version == 1 else url.strip("/") + "/v2/"
+            req = requests.head(url, timeout=self.timeout, verify=self.verify)
+        except Exception,e:
+            logger.error(e, exc_info=True)
+        else:
+            logger.info(req.status_code)
+            return req.ok
+        return False
+
+class MultiRegistryManager(BASE_REGISTRY_API):
 
     def __init__(self, timeout=2, verify=False):
         self.timeout = timeout
@@ -120,7 +141,7 @@ class MultiRegistryManager:
         """ 查询所有仓库信息 """
         return self._registries
 
-    def GET(self, query):
+    def GET(self, query, state=False):
         """ 查询 """
 
         res = {"msg": None, "code": 0}
@@ -145,73 +166,67 @@ class MultiRegistryManager:
         logger.info(res)
         return res
 
-    def POST(self, name, addr, auth=None):
-        """ add a swarm cluster into current, check, pickle. """
+    def POST(self, name, addr, version=1, auth=None):
+        """ 创建 """
 
-        res = {"msg": None, "code": 0}
-        swarmIp = swarmIp.strip()
-        swarmName = swarmName.strip()
-        logger.debug("post a swarm cluster, name is %s, ip is %s, check ip is %s" %(swarmName, swarmIp, ip_check(swarmIp)))
-
-        if not swarmName or not swarmIp or not ip_check(swarmIp):
-            res.update(msg="POST: data params error", code=-1020)
-        elif self.isMember(swarmName):
-            res.update(msg="POST: swarm cluster already exists", code=-1021)
+        res  = {"msg": None, "code": 0}
+        try:
+            version = int(version)
+        except Exception,e:
+            logger.error(e, exc_info=True)
+            res.update(msg="params error", code=-10002)
+            logger.info(res)
+            return res
         else:
-            #access node ip's info, and get all remote managers
-            url   = Splice(netloc=swarmIp, port=self.port, path='/info').geturl
-            swarm = dict(name=swarmName)
-            logger.info("init a swarm cluter named %s, will get swarm ip info, that url is %s" %(swarmName, url))
-            try:
-                nodeinfo = requests.get(url, timeout=self.timeout, verify=self.verify).json()
-                logger.debug("get swarm ip info, response is %s" %nodeinfo)
-                swarm["manager"] = [ nodes["Addr"].split(":")[0] for nodes in nodeinfo["Swarm"]["RemoteManagers"] ]
-            except Exception,e:
-                logger.error(e, exc_info=True)
-                res.update(msg="POST: access the node ip has exception", code=-1022)
-            else:
-                token = self._checkSwarmToken(self._checkSwarmLeader(swarm))
-                swarm.update(managerToken=token.get('Manager'), workerToken=token.get('Worker'))
-                self._swarms.append(swarm)
-                self._pickle(self._swarms)
-                res.update(success=True, code=0)
-                logger.info("check all pass and added")
+            logger.info("post a registry, name is %s, addr is %s, version is %s" %(name, addr, version))
+
+        if not name or not addr:
+            res.update(msg="params error", code=10002)
+        elif not "http://" in addr and not "https://" in addr:
+            res.update(msg="addr params error, must be a qualified URL(include protocol)", code=10003)
+        elif self.isMember(name):
+            res.update(msg="registry already exists", code=10004)
+        else:
+            self._registries.append(dict(name=name, addr=addr, version=version, auth=auth))
+            self._pickle(self._registries)
+            res.update(success=True, code=0)
+            logger.info("check all pass and added")
 
         logger.info(res)
         return res
 
     def DELETE(self, name):
-        """ 删除当前存储中的群集 """
+        """ 删除当前存储中的私有仓 """
 
         res = {"msg": None, "code": 0, "success": False}
         logger.info("the name that will delete is %s" %name)
 
-        if name in ("leader", "active", "all"):
-            res.update(msg="DELETE: name reserved for the system key words", code=-1031)
+        if name in ("member", "active", "all"):
+            res.update(msg="name reserved for the system key words", code=10005)
 
         elif self.isActive(name):
-            res.update(msg="DELETE: not allowed to delete the active cluster", code=-1032)
+            res.update(msg="not allowed to delete the active cluster", code=10006)
 
         elif self.isMember(name):
-            swarm = self.getOne(name)
-            logger.info("Will delete swarm cluster is %s" %swarm)
-            self._swarms.remove(swarm)
+            registry = self.getOne(name)
+            logger.info("Will delete registry is %s" %registry)
+            self._registries.remove(registry)
             if self.isMember(name):
                 logger.info("Delete fail")
                 res.update(success=False)
             else:
-                logger.info("Delete successfully, pickle current swarm")
-                self._pickle(self._swarms)
+                logger.info("Delete successfully, pickle current registries")
+                self._pickle(self._registries)
                 res.update(success=True)
 
         else:
-            res.update(msg="DELETE: this swarm cluster does not exist", code=-1030)
+            res.update(msg="This registry does not exist", code=10007)
 
         logger.info(res)
         return res
 
     def PUT(self, name, setActive=False):
-        """ 更新集群信息、设置活跃集群 """
+        """ 设置活跃仓库 """
 
         res = {"msg": None, "code": 0}
         logger.info("PUT request, setActive(%s), will set %s as active" %(setActive, name))
@@ -220,7 +235,7 @@ class MultiRegistryManager:
             if name and self.isMember(name):
                 res.update(success=self.setActive(name))
             else:
-                res.update(msg="PUT: setActive, but no name param or name non-existent", code=-1040)
+                res.update(msg="setActive, but no name param or name non-existent", code=10008)
         else:
             pass
 

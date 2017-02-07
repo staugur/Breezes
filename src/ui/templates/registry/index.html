@@ -1,10 +1,10 @@
 {% extends "base/base.html" %}
 {% block title %}
-Registry | Breezes - Docker Registry 管理平台
+Registries | Breezes - Docker Registry 管理平台
 {% endblock %}
 {% block container %}
-{% set registries = g.registry.getRegistries() %}
-{% set ActiveRegistry = g.registry.getActive %}
+{% set registries = g.registries.getRegistries() %}
+{% set ActiveRegistry = g.registries.getActive %}
 {% if not registries %}
 <div class="alert alert-warning" role="alert"><i class="icon-info-sign"></i> 当前系统无仓库!!!</div>
 {% endif %}
@@ -29,23 +29,26 @@ Registry | Breezes - Docker Registry 管理平台
     <tbody>
     {% for registry in registries %}
         <tr>
-        {%- if registry.name == ActiveRegistry.name %}
-            <td style="vertical-align: middle; text-align: center;"><attr title="当前为活跃仓库" class="icon-ok icon-large text-success"></attr></td>
-        {% else %}
-            <td style="vertical-align: middle; text-align: center;"><a href='javascript:setActive("{{ registry.name }}")'><attr title='升级为活跃仓库' class='icon-arrow-up icon-large text-primary'></attr></a></td>
-        {% endif -%}
+            {% set state = g.registries._checkStatus(registry.addr, registry.version) %}
+            <td style="vertical-align: middle; text-align: center;">
+              {%- if registry.name == ActiveRegistry.name %}
+                <attr title="当前为活跃仓库" class="icon-ok icon-large text-success"></attr>
+              {% else %}
+                <a href='javascript:setActive("{{ registry.name }}")'><attr title='升级为活跃仓库' class='icon-arrow-up icon-large text-primary'></attr></a>
+              {% endif -%}
+            </td>
             <td style='vertical-align: middle; text-align: center;'>{{ registry.name }}</td>
-            <td style='vertical-align: middle; text-align: center;'>{{ registry.address }}</td>
-            <td style='vertical-align: middle; text-align: center;'>{{ registry.version }}</td>
-            {% if registry.state == "Healthy" %}
-            <td style='vertical-align: middle; text-align: center;' class="text-success">{{ registry.state }}</td>
+            <td style='vertical-align: middle; text-align: center;'><code>{{ registry.addr }}</code></td>
+            <td style='vertical-align: middle; text-align: center;'><kbd>V{{ registry.version }}</kbd></td>
+            {% if state %}
+                <td style='vertical-align: middle; text-align: center;' class="text-success">Healthy</td>
             {% else %}
-            <td style='vertical-align: middle; text-align: center;' class="text-danger">{{ registry.state }}</td>
+                <td style='vertical-align: middle; text-align: center;' class="text-danger">Unhealthy</td>
             {% endif %}
             <td style='vertical-align: middle; text-align: center;'>
                 &nbsp;&nbsp;<a class="btn btn-xs btn-info" href="{{ url_for('ui.index', UpdateManager=true) }}"><i class="icon-refresh icon-large icon-spin"></i>&nbsp;同步</a>
                 <br/>
-                &nbsp;&nbsp;<a class="btn btn-xs btn-danger" href="javascript:SwarmDelete('{{ swarm.name }}')"><i class="icon-trash icon-large"></i>&nbsp;删除</a>
+                &nbsp;&nbsp;<a class="btn btn-xs btn-danger" href="javascript:RegistryDelete('{{ registry.name }}')"><i class="icon-trash icon-large"></i>&nbsp;删除</a>
                 <br/>
             </td>
         </tr>
@@ -65,7 +68,7 @@ NavId.className='active';
 // 设置活跃仓库
 function setActive(name) {
     $.ajax({
-        url: "/",
+        url: "{{ url_for('api.registries') }}?setActive=true&name="+name,
         method: 'PUT',
         datatype: 'json',
         success: function(res) {
@@ -83,6 +86,35 @@ function setActive(name) {
     });
 }
 
+// 询问框、iframe层删除单个registry
+function RegistryDelete(name) {
+    layer.confirm('你确定要删除此仓库?', {
+        btn: ['确认删除','我再想想']
+    }, function(){
+        console.warn("将要删除仓库"+name);
+        if (name) {
+            $.ajax({
+                url: "{{ url_for('api.registries') }}",
+                method: 'DELETE',
+                async: false,
+                datatype: 'json',
+                data: {"name": name},
+                success: function(res) {
+                    console.log(res);
+                    if (res.success==true) {
+                        layer.msg("Delete Registry Successfully", {icon: 1, time: 3*1000});
+                        document.location.reload(); //重载当前页面
+                    } else {
+                        layer.msg("Delete Registry Failed. "+res.msg, {icon: 2, time: 10*1000});
+                    }
+                },
+            });
+        };
+    }, function() {
+        console.log("canel");
+    });
+}
+
 // iframe层添加仓库
 function RegistryAdd() {
     layer.open({
@@ -91,7 +123,7 @@ function RegistryAdd() {
         shadeClose: true,
         shade: 0.8,
         area: ['800px', '90%'],
-        content: '/'
+        content: '{{ url_for("ui.registry_add") }}'
     });
 }
 </script>

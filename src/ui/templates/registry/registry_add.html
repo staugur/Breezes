@@ -1,0 +1,67 @@
+{% extends "base/micro.html" %}
+
+{% block title %}
+Registry Add | Breezes - Docker Registry 管理平台
+{% endblock %}
+
+{% block container %}
+<form class="form-horizontal" role="form" id="AddRegistryForm">
+
+  <div class="form-group">
+    <label for="AddRegistryName" class="col-sm-12">Registry Name&nbsp;<span class="glyphicon glyphicon-star-empty"></span></label>
+    <div class="col-sm-12">
+      <input type="text" class="form-control" id="AddRegistryName" name="name" placeholder="私有仓标识名称">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="AddRegistryAddr" class="col-sm-12">Registry Address&nbsp;<span class="glyphicon glyphicon-star-empty"></span></label>
+    <div class="col-sm-12">
+      <input type="url" class="form-control" id="AddRegistryAddr" name="addr" placeholder="私有仓完全合格地址">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="AddRegistryVersion" class="col-sm-12">Registry Version&nbsp;</label>
+    <div class="col-sm-12">
+      <input type="number" class="form-control" id="AddRegistryVersion" name="version" placeholder="私有仓版本" value=1>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="AddRegistryAuth" class="col-sm-12">Registry Auth&nbsp;</label>
+    <div class="col-sm-12">
+      <input type="text" class="form-control" id="AddRegistryAuth" name="auth" placeholder="私有仓认证信息" disabled>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <div class=" col-sm-12">
+      <button type="button" id="AddRegistrySubmit" onclick=AddRegistry() class="btn btn-success">添加私有仓</button>
+    </div>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript">
+function AddRegistry() {
+    $.ajax({
+        url: "{{ url_for('api.registries') }}",
+        method: 'POST',
+        datatype: 'json',
+        data: $('#AddRegistryForm').serialize(),
+        success: function(res) {
+            console.log(res);
+            if (res.success==true) {
+                alert("添加私有仓成功！");
+                parent.location.reload();
+            } else {
+                alert("添加私有仓失败，请重试提交或报告错误！\n错误原因是：" + res.msg);
+            }
+        },
+    });
+}
+</script>
+{% endblock %}
