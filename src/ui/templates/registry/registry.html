@@ -5,18 +5,16 @@ Registry | SwarmOps - Docker管理平台
 {% endblock %}
 
 {% block container %}
-{% set registies = g.registry._search_all_repository(request.args.get("q", "")) %}
-<!--
+{% set registies = g.registry.list_repository(request.args.get("q", "")) %}
 <p>
-    <a href="{{ url_for('ui.misc', misc='AddRegistry') }}"><button type="button" class="btn btn-success">添加私有仓</button></a>
-    <a href="{{ url_for('ui.misc', misc='DelRegistry') }}"><button type="button" class="btn btn-danger">删除私有仓</button></a>
+    <a href=""><button type="button" class="btn btn-success">添加私有仓</button></a>
+    <a href=""><button type="button" class="btn btn-danger">删除私有仓</button></a>
 </p>
--->
 <div>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓地址:&nbsp;<kbd>{{ g.registry.url }}</kbd></p>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓版本:&nbsp;<kbd>v{{ g.registry.version }}</kbd></p>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓状态:
-    {% if g.registry.status %}
+    {% if g.registry.isHealth %}
         <b class="text-success">OK</b>
     {% else %}
         <b class="text-danger">Fail</b>
