@@ -46,8 +46,6 @@ Registries | Breezes - Docker Registry 管理平台
                 <td style='vertical-align: middle; text-align: center;' class="text-danger">Unhealthy</td>
             {% endif %}
             <td style='vertical-align: middle; text-align: center;'>
-                &nbsp;&nbsp;<a class="btn btn-xs btn-info" href="{{ url_for('ui.index', UpdateManager=true) }}"><i class="icon-refresh icon-large icon-spin"></i>&nbsp;同步</a>
-                <br/>
                 &nbsp;&nbsp;<a class="btn btn-xs btn-danger" href="javascript:RegistryDelete('{{ registry.name }}')"><i class="icon-trash icon-large"></i>&nbsp;删除</a>
                 <br/>
             </td>

@@ -27,19 +27,21 @@ class BASE_REGISTRY_API:
     def _search_all_repository(self, url, version=1, q=""):
         """ 搜索私有仓所有镜像 """
 
-        ReqUrl = url.strip("/") + "/v1/search" if version == 1 else url.strip("/") + "/v2/_catalog"
-
-        logger.info("_search_all_repository for url {}".format(ReqUrl))
-        try:
-            Images = requests.get(ReqUrl, timeout=self.timeout, verify=self.verify, params={"q": q}).json()
-        except Exception,e:
-            logger.error(e, exc_info=True)
-            return []
-        else:
-            if version == 1:
-                return Images["results"]
+        if url:
+            ReqUrl = url.strip("/") + "/v1/search" if version == 1 else url.strip("/") + "/v2/_catalog"
+            logger.info("_search_all_repository for url {}".format(ReqUrl))
+            try:
+                Images = requests.get(ReqUrl, timeout=self.timeout, verify=self.verify, params={"q": q}).json()
+            except Exception,e:
+                logger.error(e, exc_info=True)
+                return []
             else:
-                return [ _ for _ in Images["repositories"] if q in _ ]
+                if version == 1:
+                    return Images["results"]
+                else:
+                    return [ {"name": _, "description": None} for _ in Images["repositories"] if q in _ ]
+        else:
+            return []
 
     def _list_repository_tag(self, ImageName):
         """ 列出某个镜像所有标签 """
@@ -344,9 +346,9 @@ class ApiRegistryManager(BASE_REGISTRY_API):
     def __init__(self, timeout=2, verify=False, ActiveRegistry={}):
         self.timeout = timeout
         self.verify  = verify
-        self._addr   = ActiveRegistry["addr"]
-        self._ver    = ActiveRegistry["version"]
-        self._auth   = ActiveRegistry["auth"]
+        self._addr   = ActiveRegistry.get("addr")
+        self._ver    = ActiveRegistry.get("version")
+        self._auth   = ActiveRegistry.get("auth")
         logger.info("Registry API Init, registry is {}".format(self._addr))
 
     @property
