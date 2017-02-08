@@ -1,17 +1,17 @@
 {% extends "base/base.html" %}
 
 {% block title %}
-Registry | SwarmOps - Docker管理平台
+ImageTags | Breezes - Docker Registry 管理平台
 {% endblock %}
 
 {% block container %}
 
-{% set tags = g.registry._list_repository_tag(imageName) %}
+{% set tags = g.registry.list_imageTags(ImageName) %}
 <div>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓地址:&nbsp;<kbd>{{ g.registry.url }}</kbd></p>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓版本:&nbsp;<kbd>v{{ g.registry.version }}</kbd></p>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓状态:
-    {% if g.registry.status %}
+    {% if g.registry.isHealth %}
         <b class="text-success">OK</b>
     {% else %}
         <b class="text-danger">Fail</b>
@@ -20,13 +20,13 @@ Registry | SwarmOps - Docker管理平台
     </p>
     <div>
         <ol class="breadcrumb">
-            <li>Registry</li>
-            <li class="active">ImageName</li>
-            <li>ImageInfo</li>
+            <li>Images</li>
+            <li class="active">ImageTags</li>
+            <li>ImageTagInfo</li>
         </ol>
     </div>
 </div>
-{% if g.registry.status %}
+{% if g.registry.isHealth %}
 <table class="table table-bordered table-hover table-condensed table-responsive">
     <thead>
         <tr class="active">
@@ -38,8 +38,8 @@ Registry | SwarmOps - Docker管理平台
     <tbody>
     {% for tag, imageId in tags.iteritems() %}
         <tr>
-            <td style='vertical-align: middle;'>{{ "{}/{}:{}".format(g.registry.url.split("://")[-1].strip("/"), imageName, tag) }}</td>
-            <td style='vertical-align: middle; '>
+            <td style='vertical-align: middle; text-align: center;'>{{ "{}/{}:{}".format(g.registry.url.split("://")[-1].strip("/"), ImageName, tag) }}</td>
+            <td style='vertical-align: middle; text-align: center;'>
                 <a href="{{ url_for('ui.registryImageId', imageId=imageId) }}" target="_blank">{{ imageId }}</a>
             </td>
             <td style='vertical-align: middle; text-align: center;'>
@@ -59,14 +59,14 @@ Registry | SwarmOps - Docker管理平台
 // 更新导航
 var NavId=null;
 var As=document.getElementById('tab').getElementsByTagName('li');
-NavId = As[4];
+NavId = As[1];
 console.log(NavId)
 NavId.className='active';
 
 // 删除某镜像tag
 function DeleteTag(tag) {
     $.ajax({
-        url: "{{ url_for('apis.core.registry') }}?repository_name={{ imageName }}&repository_name_tag=" + tag,
+        url: "{{ url_for('api.registries') }}?repository_name={{ imageName }}&repository_name_tag=" + tag,
         method: 'DELETE',
         datatype: 'json',
         success: function(res) {

@@ -13,8 +13,12 @@ def registry():
     return render_template("registry/registry.html")
 
 @ui_blueprint.route("/registry/<namespace>/<repository_name>/")
-def registryImageName(namespace, repository_name):
-    return render_template("registry/imageName.html", imageName="{}/{}".format(namespace, repository_name))
+def registryImageNameV1(namespace, repository_name):
+    return render_template("registry/imageName.html", ImageName="{}/{}".format(namespace, repository_name))
+
+@ui_blueprint.route("/registry/<ImageName>/")
+def registryImageNameV2(ImageName):
+    return render_template("registry/imageName.html", ImageName=ImageName)
 
 @ui_blueprint.route("/registry/<imageId>")
 def registryImageId(imageId):

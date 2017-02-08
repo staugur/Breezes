@@ -1,17 +1,17 @@
 {% extends "base/base.html" %}
 
 {% block title %}
-Registry | SwarmOps - Docker管理平台
+ImageTagInfo | Breezes - Docker Registry 管理平台
 {% endblock %}
 
 {% block container %}
 
-{% set imageIdInfo = g.registry._get_imageId_info(imageId) %}
+{% set imageIdInfo = g.registry.get_tag_info(imageId) %}
 <div>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓地址:&nbsp;<kbd>{{ g.registry.url }}</kbd></p>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓版本:&nbsp;<kbd>v{{ g.registry.version }}</kbd></p>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓状态:
-    {% if g.registry.status %}
+    {% if g.registry.isHealth %}
         <b class="text-success">OK</b>
     {% else %}
         <b class="text-danger">Fail</b>
@@ -19,13 +19,13 @@ Registry | SwarmOps - Docker管理平台
     </p>
     <div>
         <ol class="breadcrumb">
-            <li>Registry</li>
-            <li>ImageName</li>
-            <li class="active">ImageInfo</li>
+            <li>Images</li>
+            <li>ImageTags</li>
+            <li class="active">ImageTagInfo</li>
         </ol>
     </div>
 </div>
-{% if g.registry.status %}
+{% if g.registry.isHealth %}
 <div>
 <table class="table table-bordered table-hover table-condensed table-responsive">
     <tbody>
@@ -55,7 +55,7 @@ Registry | SwarmOps - Docker管理平台
 // 更新导航
 var NavId=null;
 var As=document.getElementById('tab').getElementsByTagName('li');
-NavId = As[4];
+NavId = As[1];
 console.log(NavId)
 NavId.className='active';
 
