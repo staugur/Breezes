@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 
 ui_blueprint = Blueprint("ui", __name__, template_folder="templates", static_folder='static')
 
@@ -18,7 +18,7 @@ def registryImageName(namespace, repository_name):
 
 @ui_blueprint.route("/registry/<imageId>")
 def registryImageId(imageId):
-    return render_template("registry/imageId.html", imageId=imageId)
+    return render_template("registry/imageId.html", imageId=imageId, ImageName=request.args.get("ImageName"))
 
 @ui_blueprint.route("/registry/add/")
 def registry_add():

@@ -9,7 +9,7 @@ class Registries(Resource):
     def get(self):
         """ 查询存储的私有仓库信息 """
 
-        query  = request.args.get("query")
+        query  = request.args.get("q")
         state  = True if request.args.get("state", False) in ('true', 'True', True) else False
         return g.registries.GET(query, state)
 
@@ -40,49 +40,42 @@ class Registry(Resource):
     def get(self):
         """ 查询私有仓 """
 
+        res       = {}
         query     = request.args.get("q")
         ImageName = request.args.get("ImageName")
         ImageId   = request.args.get("ImageId")
-        tag       = request.args.get("tag")
 
-        if g.auth:
-            res = {"msg": None, "data": None}
-            if query == "url":
-                res.update(data=g.registry.url)
-            elif query == "status":
-                res.update(data=g.registry.status)
-            elif query == "version":
-                res.update(data=g.registry.version)
-            elif query == "all_repository":
-                res.update(data=g.registry._list_all_repository)
-            elif query == "all_tag":
-                res.update(data=g.registry._list_repository_tag(ImageName))
-            elif query == "all_imageId_ancestry":
-                res.update(data=g.registry._list_imageId_ancestry(ImageId))
-            elif query == "imageId_info":
-                res.update(data=g.registry._get_imageId_info(ImageId))
-            logger.info(res)
-            return res
+        if query == "url":
+            res.update(data=g.registry.url)
+        elif query == "status":
+            res.update(data=g.registry.isHealth)
+        elif query == "version":
+            res.update(data=g.registry.version)
+        elif query == "all_repository":
+            res=g.registry.list_repository(q="")
+        elif query == "all_tag":
+            res=g.registry.list_imageTags(ImageName)
+        elif query == "tag_info":
+            res=g.registry.get_tag_info(ImageId, ImageName)
         else:
-            return abort(403)
+            if query:
+                res=g.registry.list_repository(q=query)
+            else:
+                res.update(msg="Invalid query", code=-2)
+
+        return res
 
     def delete(self):
         """ 删除镜像<标签> """
 
-        repository_name     = request.args.get("repository_name")
-        repository_name_tag = request.args.get("repository_name_tag")
+        ImageName= request.form.get("ImageName")
+        ImageTag = request.form.get("ImageTag")
+        logger.info("api registry delete, ImageName:{}, ImageTag:{}".format(ImageName, ImageTag))
 
-        if g.auth:
-            res = {"msg": None, "success": False}
-            if repository_name_tag:
-                res.update(success=g.registry._delete_repository_tag(ImageName=repository_name, tag=repository_name_tag))
-            else:
-                res.update(success=g.registry._delete_repository(ImageName=repository_name))
-            logger.info(res)
-            return res
+        if ImageTag:
+            return g.registry.delete_an_image_tag(ImageName=ImageName, tag=ImageTag)
         else:
-            return abort(403)
-
+            return g.registry.delete_an_image(ImageName=ImageName)
 
 api_blueprint = Blueprint(__name__, __name__)
 api = Api(api_blueprint)

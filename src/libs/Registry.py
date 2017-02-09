@@ -21,13 +21,13 @@ class BASE_REGISTRY_API:
             except Exception,e:
                 logger.error(e, exc_info=True)
             else:
-                logger.info(req.status_code)
                 return req.ok
         return False
 
     def _search_all_repository(self, url, version=1, q=""):
         """ 搜索私有仓所有镜像 """
 
+        res = {"msg": None, "data": []}
         if url:
             ReqUrl = url.strip("/") + "/v1/search" if version == 1 else url.strip("/") + "/v2/_catalog"
             logger.info("_search_all_repository for url {}".format(ReqUrl))
@@ -35,72 +35,115 @@ class BASE_REGISTRY_API:
                 Images = requests.get(ReqUrl, timeout=self.timeout, verify=self.verify, params={"q": q}).json()
             except Exception,e:
                 logger.error(e, exc_info=True)
+                res.update(msg=e)
             else:
                 if version == 1:
-                    return Images["results"]
+                    res.update(data=Images["results"])
                 else:
-                    return [ {"name": _, "description": None} for _ in Images["repositories"] if q in _ ]
-        return []
+                    res.update(data=[ {"name": _, "description": None} for _ in Images["repositories"] if q in _ ])
+        logger.info(res)
+        return res
 
     def _list_image_tags(self, ImageName, url, version=1):
         """ 列出某个镜像所有标签 """
 
-        if url:
+        res = {"msg": None, "data": {}}
+        if url and ImageName:
             ReqUrl = url.strip("/") + "/v1/repositories/{}/tags".format(ImageName) if version == 1 else url.strip("/") + "/v2/{}/tags/list".format(ImageName)
-            logger.info("_list_image_tag for url {}".format(ReqUrl))
+            logger.info("_list_image_tags for url {}".format(ReqUrl))
             try:
                 Tags = requests.get(ReqUrl, timeout=self.timeout, verify=self.verify).json()
             except Exception,e:
                 logger.error(e, exc_info=True)
+                res.update(msg=e)
             else:
                 if version == 1:
-                    return Tags
+                    res.update(data=Tags)
                 else:
-                    return { _:"digest" for _ in Tags.get('tags', []) }
-        return {}
+                    res.update(data={ _:self._from_image_tag_getId(ImageName, _, url, version) for _ in Tags.get('tags', []) })
+        logger.info(res)
+        return res
 
     def _delete_image(self, ImageName, url, version=1):
         """ 删除一个镜像 """
 
+        res = {"msg": None, "success": False}
         if url:
-            ReqUrl = url.strip("/") + "/v1/repositories/{}/".format(ImageName) if version == 1 else url.strip("/") + "/v2/{}/xxx".format(ImageName)
-            logger.info("_delete_repository for url {}".format(ReqUrl))
+            ReqUrl = url.strip("/") + "/v1/repositories/{}/".format(ImageName) if version == 1 else ""
+            logger.info("_delete_image for url {}".format(ReqUrl))
             try:
                 delete_repo_result = requests.delete(ReqUrl, timeout=self.timeout, verify=self.verify).json()
             except Exception,e:
                 logger.error(e, exc_info=True)
+                if version == 1:
+                    res.update(msg=e)
+                else:
+                    res.update(msg="The operation is unsupported.", code=-1)
             else:
-                return delete_repo_result
-        return False
+                res.update(success=delete_repo_result)
+        logger.info(res)
+        return res
 
-    def _image_tag(self, ImageName, tag, url, version=1):
-        """ 查询某个镜像tag的imageId, 删除tag """
+    def _from_image_tag_getId(self, ImageName, tag, url, version=1):
+        """ 查询某个镜像tag的imageId/digest """
 
         if url:
-            ReqUrl = url.strip("/") + "/v1/repositories/{}/tags/{}".format(ImageName, tag) if version == 1 else url.strip("/") + "/v2/{}/tags/list".format(ImageName)
-            logger.info("_get_imageId for url {}".format(ReqUrl))
+            ReqUrl = url.strip("/") + "/v1/repositories/{}/tags/{}".format(ImageName, tag) if version == 1 else url.strip("/") + "/v2/{}/manifests/{}".format(ImageName, tag)
+            logger.info("_from_image_tag_getId for url {}".format(ReqUrl))
             try:
-                ImageId = requests.get(ReqUrl, timeout=self.timeout, verify=self.verify).json()
-                #result = requests.delete(ReqUrl, timeout=self.timeout, verify=self.verify).json()
+                if version == 1:
+                    r = requests.get(ReqUrl, timeout=self.timeout, verify=self.verify)
+                else:
+                    r = requests.head(ReqUrl, timeout=self.timeout, verify=self.verify, allow_redirects=True, headers={"Content-Type": "application/vnd.docker.distribution.manifest.v2+json"})
             except Exception,e:
                 logger.error(e, exc_info=True)
             else:
-                return ImageId
-        return
+                if version == 1:
+                    return r.json()
+                else:
+                    return r.headers.get("Docker-Content-Digest", "")
+        return ""
 
-    def _get_imageId_info(self, ImageId, url, version=1):
-        """ 查询某个镜像的信息 """
+    def _get_imageId_info(self, ImageId, url, version=1, ImageName=None):
+        """ 查询某个镜像的信息(v2时必须定义ImageName), ImageId/Tag(v2) """
 
+        res = {"msg": None, "data": {}}
         if url:
-            ReqUrl = url.strip("/") + "/v1/images/{}/json".format(ImageId) if version == 1 else url.strip("/") + "/v2/{}/tags/xxx".format(ImageName)
+            ReqUrl = url.strip("/") + "/v1/images/{}/json".format(ImageId) if version == 1 else url.strip("/") + "/v2/{}/manifests/{}".format(ImageName, ImageId)
             logger.info("_get_imageId_info for url {}".format(ReqUrl))
             try:
                 ImageInfo = requests.get(ReqUrl, timeout=self.timeout, verify=self.verify).json()
             except Exception,e:
                 logger.error(e, exc_info=True)
+                res.update(msg=e)
             else:
-                return ImageInfo
-        return {}
+                logger.debug(ImageInfo)
+                if "errors" in ImageInfo or "error" in ImageInfo:
+                    res.update(msg="get tag detail info error")
+                else:
+                    res.update(data=ImageInfo)
+        logger.info(res)
+        return res
+
+    def _delete_imageTag(self, ImageName, tag, url, version=1):
+        """ 删除一个镜像标签 """
+
+        res = {"msg": None, "success": False}
+        if url:
+            ReqUrl = url.strip("/") + "/v1/repositories/{}/tags/{}".format(ImageName, tag) if version == 1 else url.strip("/") + "/v2/{}/manifests/{}".format(ImageName, self._from_image_tag_getId(ImageName, tag, url, version))
+            logger.info("_delete_imageTag for url {}".format(ReqUrl))
+            try:
+                delete_repo_result = requests.delete(ReqUrl, timeout=self.timeout, verify=self.verify).json()
+            except Exception,e:
+                logger.error(e, exc_info=True)
+                res.update(msg=e)
+            else:
+                if version == 1:
+                    res.update(success=delete_repo_result)
+                else:
+                    res.update(msg="The operation is unsupported.", code=-1)
+        logger.info(res)
+        return res
 
 class MultiRegistryManager(BASE_REGISTRY_API):
 
@@ -266,7 +309,7 @@ class MultiRegistryManager(BASE_REGISTRY_API):
         elif self.isMember(name):
             res.update(msg="registry already exists", code=10004)
         else:
-            self._registries.append(dict(name=name, addr=addr, version=version, auth=auth))
+            self._registries.append(dict(name=name.strip(), addr=addr.strip(), version=version, auth=auth))
             self._pickle(self._registries)
             res.update(success=True, code=0)
             logger.info("check all pass and added")
@@ -355,6 +398,14 @@ class ApiRegistryManager(BASE_REGISTRY_API):
         """ 查询某镜像的tag列表 """
         return self._list_image_tags(url=self.url, version=self.version, ImageName=ImageName)
 
-    def get_tag_info(self, ImageId):
+    def get_tag_info(self, ImageId, ImageName=None):
         """ 查询某tag(ImageId)的镜像信息 """
-        return self._get_imageId_info(url=self.url, version=self.version, ImageId=ImageId)
+        return self._get_imageId_info(url=self.url, version=self.version, ImageId=ImageId, ImageName=ImageName)
+
+    def delete_an_image(self, ImageName):
+        """ 删除一个镜像 """
+        return self._delete_image(url=self.url, version=self.version, ImageName=ImageName)
+
+    def delete_an_image_tag(self, ImageName, tag):
+        """ 删除一个镜像标签 """
+        return self._delete_imageTag(url=self.url, version=self.version, ImageName=ImageName, tag=tag)
