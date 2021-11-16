@@ -23,7 +23,7 @@
     <div class="header">
     <p>
         <a href="{{ url_for('ui.index') }}"><img src="{{ url_for('ui.static', filename='img/logo.jpg') }}" alt="{{ self.title() }}" title="{{ self.title() }}" class="img-circle" width="6%"></a><br/>
-        <b>{{ self.title() }}</b><sub class="text-lowercase"><kbd>v{{ g.sysInfo.Version }}</kbd></sub>
+        <b>{{ self.title() }}</b><sub class="text-lowercase"><kbd>v{{ Version }}</kbd></sub>
     </p>
     </div>
     <br />
@@ -44,8 +44,7 @@
         <p class="text-muted credit" style="padding: 10px;">
               Copyright &copy; 2017 SaintIC.&nbsp;&nbsp;
               All rights reserved.&nbsp;&nbsp;
-              Originate by <a href="https://github.com/staugur/Breezes" target="_blank" title="{{ g.sysInfo.Doc }}">Breezes</a>.&nbsp;&nbsp;
-              Author:&nbsp;<a href="mailto:{{ g.sysInfo.Email }}">{{ g.sysInfo.Author }}</a>
+              Powered by <a href="https://github.com/staugur/Breezes" target="_blank">Breezes</a>
         </p>
     </div>
     </nav>

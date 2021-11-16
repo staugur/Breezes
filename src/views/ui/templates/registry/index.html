@@ -3,8 +3,8 @@
 Registries | Breezes - Docker Registry 管理平台
 {% endblock %}
 {% block container %}
-{% set registries = g.registries.getRegistries() %}
-{% set ActiveRegistry = g.registries.getActive %}
+{% set registries = g.mrm.getRegistries() %}
+{% set ActiveRegistry = g.mrm.getActive %}
 {% if not registries %}
 <div class="alert alert-warning" role="alert"><i class="icon-info-sign"></i> 当前系统无仓库!!!</div>
 {% endif %}
@@ -29,7 +29,6 @@ Registries | Breezes - Docker Registry 管理平台
     <tbody>
     {% for registry in registries %}
         <tr>
-            {% set state = g.registries._checkStatus(registry.addr, registry.version) %}
             <td style="vertical-align: middle; text-align: center;">
               {%- if registry.name == ActiveRegistry.name %}
                 <attr title="当前为活跃仓库" class="icon-ok icon-large text-success"></attr>
@@ -40,6 +39,7 @@ Registries | Breezes - Docker Registry 管理平台
             <td style='vertical-align: middle; text-align: center;'>{{ registry.name }}</td>
             <td style='vertical-align: middle; text-align: center;'><code>{{ registry.addr }}</code></td>
             <td style='vertical-align: middle; text-align: center;'><kbd>v{{ registry.version }}</kbd></td>
+            {% set state = g.mrm.isHealth(registry.name) %}
             {% if state %}
                 <td style='vertical-align: middle; text-align: center;' class="text-success">Healthy</td>
             {% else %}
@@ -60,7 +60,6 @@ Registries | Breezes - Docker Registry 管理平台
 var NavId=null;
 var As=document.getElementById('tab').getElementsByTagName('li');
 NavId = As[0];
-console.log(NavId)
 NavId.className='active';
 
 // 设置活跃仓库

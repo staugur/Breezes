@@ -6,12 +6,11 @@ ImageTagInfo | Breezes - Docker Registry 管理平台
 
 {% block container %}
 
-{% set imageIdInfo = g.registry.get_tag_info(imageId, ImageName).data %}
+{% set imageIdInfo = g.ar.get_minifests(imageId, ImageName) %}
 <div>
-    <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓地址:&nbsp;<kbd>{{ g.registry.url }}</kbd></p>
-    <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓版本:&nbsp;<kbd>v{{ g.registry.version }}</kbd></p>
+    <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓地址:&nbsp;<kbd>{{ g.ar.url }}</kbd></p>
     <p><scan class="glyphicon glyphicon-info-sign"></scan>私有仓状态:
-    {% if g.registry.isHealth %}
+    {% if g.ar.isHealth %}
         <b class="text-success">OK</b>
     {% else %}
         <b class="text-danger">Fail</b>
@@ -26,11 +25,11 @@ ImageTagInfo | Breezes - Docker Registry 管理平台
         </ol>
     </div>
 </div>
-{% if g.registry.isHealth %}
+{% if g.ar.isHealth %}
 <div>
 <table class="table table-bordered table-hover table-condensed table-responsive">
     <tbody>
-    {% for k, v in imageIdInfo.iteritems() %}
+    {% for k, v in imageIdInfo[0].item() %}
         <tr>
             <td style='vertical-align: middle;'>{{ k }}</td>
             <td style='vertical-align: middle;'>

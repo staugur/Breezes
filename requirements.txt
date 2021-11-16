@@ -1,8 +1,2 @@
-Flask==0.10.1
-Flask-RESTful
-SpliceURL>=1.2
-tornado
-gevent
-setproctitle
+Flask>2.0.0
 requests
-supervisor
